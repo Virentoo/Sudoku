@@ -9,6 +9,7 @@ public class MyTimerTask extends TimerTask {
     private int seconds;
     private int milliseconds;
     private boolean work = false;
+    private int sleep;
 
     public MyTimerTask() {
         minutes = 0;
@@ -55,9 +56,7 @@ public class MyTimerTask extends TimerTask {
 
     private void nextMinutes() {
         minutes++;
-        if (minutes > 59) {
-            minutes = 0;
-        }
+		System.gc();
     }
     
     public void start() {
@@ -76,7 +75,14 @@ public class MyTimerTask extends TimerTask {
 
     @Override
     public void run(){
-    	if(work)
+    	if(sleep != 0) {
+    		sleep -= 100;
+    	}else if (work) { 
     		nextMili();
+    	}
+    }
+    
+    public void sleep(int time) {
+    	sleep = time;
     }
 }

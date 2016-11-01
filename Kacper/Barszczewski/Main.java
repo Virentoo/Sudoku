@@ -26,7 +26,7 @@ class MyFrame extends JFrame {
 	Insets ins;
 	
 	final int WIDTH = 400,
-			HEIGHT = 600;
+			HEIGHT = 610;
 	
 	
 	

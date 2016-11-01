@@ -19,6 +19,10 @@ import javax.swing.text.StyledDocument;
 
 public class MyJTextPanel extends JTextPane {
 	
+	Color eBColor = new Color(180, 180, 180);
+	Color dBColor = new Color(160, 160, 160);
+	Color wBColor = new Color(255, 40, 40);
+	
 	MyJTextPanel() {
 		
 	}
@@ -28,14 +32,14 @@ public class MyJTextPanel extends JTextPane {
 		this.setPreferredSize(new Dimension(13,13));
 		this.setFont(new Font(null, Font.BOLD, 17));
 		this.setBorder(BorderFactory.createLineBorder(Color.BLACK));
-		this.setBackground(new Color(180,180,180));
-		this.setForeground(Color.WHITE);
+		this.setBackground(eBColor);
+		this.setForeground(new Color(240, 240, 240));
 		
 		
 		Set<KeyStroke> set = new HashSet<KeyStroke>();
 		set.add(KeyStroke.getKeyStroke("TAB"));
 		this.setFocusTraversalKeys(KeyboardFocusManager.FORWARD_TRAVERSAL_KEYS, set);
-		this.setDisabledTextColor(new Color(100, 100, 100));
+		this.setDisabledTextColor(new Color(50, 50, 50));
 		
 		this.setStyledDocument(new DefaultStyledDocument() {
 			
@@ -67,6 +71,21 @@ public class MyJTextPanel extends JTextPane {
 	public void setText(String text) {
 		if(Integer.parseInt(text) == 0) text = "";
 		super.setText(text);
+	}
+	
+	@Override
+	public void setEnabled(boolean b) {
+		if(b) this.setBackground(eBColor);
+		else this.setBackground(dBColor);
+		super.setEnabled(b);
+	}
+	
+	public void wrong() {
+		this.setBackground(wBColor);
+	}
+	
+	public void correct() {
+		this.setBackground(eBColor);
 	}
 	
 	

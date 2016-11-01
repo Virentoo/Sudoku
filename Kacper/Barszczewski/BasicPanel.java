@@ -1,7 +1,6 @@
 package pl.Barszczewski.Kacper;
 
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
@@ -15,6 +14,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import javax.swing.BorderFactory;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
@@ -25,11 +26,19 @@ public class BasicPanel extends JPanel {
 	int[][] sudokuRoz = new int[9][9];
 	
 	public int seconds, minutes;
+
+	boolean isSudokuNeedCheck = false;
 	
 	Insets ins;
 	
+	int level = 1;
+	
+	SudokuAlgorithm sudoku;
+	
 	MyTimerTask timerTask = new MyTimerTask();
 	Timer timer = new Timer();
+	
+	MyJButton ssb, rozB ;
 	
 	public BasicPanel() {
 		this.setLayout();
@@ -40,15 +49,61 @@ public class BasicPanel extends JPanel {
 		add(sprawdzenieButton());
 		add(stopStartTime());
 		add(resetButton());
+		add(levelSelecting());
+		add(levelLabel());
+		
 		
 		timer.scheduleAtFixedRate(timerTask, 0, 100);
+		timer.scheduleAtFixedRate(cisirTask(), 1, 100);
 		startRepaintingWindow();
 		
 		
 		createNewSudoku();
 	}
+
+
+	private JLabel levelLabel() {
+		JLabel label = new JLabel("Poziom: ");
+		label.setFont(new Font(null, Font.ROMAN_BASELINE, 12));
+		label.setBounds(40, 510, 50, 30);
+		return label;
+	}
+
+
+	private JComboBox<String> levelSelecting() {
+		String[] levels = new String[]{"Niski", "Średni", "Wysoki"};
+		JComboBox<String> cbox = new JComboBox<String>(levels);
+		cbox.addActionListener(new ActionListener() {
+
+			@SuppressWarnings("unchecked")
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				JComboBox<String> cbox = (JComboBox<String>) e.getSource();
+				level = cbox.getSelectedIndex();
+			}
+			
+		});
+		cbox.setSelectedIndex(1);
+		cbox.setBounds(100, 510, 240, 27);
+		return cbox;
+	}
 	
-	private Component resetButton() {
+	private TimerTask cisirTask() {
+		return new TimerTask(){
+			@Override
+			public void run() {
+				if(isSudokuNeedCheck && sudoku.good()) {
+					sudokuPlansza = sudoku.getSudoku();
+					sudokuRoz = sudoku.getAnswer();
+					uzupelnijGUI(sudokuPlansza);
+					isSudokuNeedCheck = false;
+				}
+			}
+		};
+	}
+
+
+	private MyJButton resetButton() {
 		MyJButton resetButton = new MyJButton("Reset");
 		resetButton.setBounds(50, 5, 80, 25);
 		resetButton.addActionListener(new ActionListener() {
@@ -61,7 +116,7 @@ public class BasicPanel extends JPanel {
 	}
 
 	private MyJButton stopStartTime() {
-		MyJButton ssb = new MyJButton("Start");
+		ssb = new MyJButton("Start");
 		ssb.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -92,43 +147,31 @@ public class BasicPanel extends JPanel {
 		}, 0, 100);
 	}
 
-	private Component sprawdzenieButton() {
+	private MyJButton sprawdzenieButton() {
 		MyJButton sprB = new MyJButton("Sprawdz");
 		sprB.setBounds(40, 460, 300, 40);
 		sprB.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e){
-				sprawdzPoprawnoscSudoku(sudokuRoz);
-			}
-
-			private void sprawdzPoprawnoscSudoku(int[][] sudoku) {
-				int i = 0;
-				boolean czyPoprawnie = true;
-				
-				for(int n = 0; n < 9; n++) {
-					if(!sudokuBoxes[n].czyPoprawnie((int)(n/3), i, sudoku)){
-						czyPoprawnie = false;
-						break;
-					}
-					i++;
-					if(i == 3) i = 0;
+				if(czySudokuRozwiazanePoprawnie(sudokuRoz, false)) {
+					timerTask.stop();
+					ssb.setText("Start");
+					JOptionPane.showMessageDialog(null, "Sudoku rozwiązne poprawnie :) Czas: " + timerTask.getTime());
 				}
-				
-				if(czyPoprawnie) JOptionPane.showMessageDialog(null, "Sudoku rozwiązne poprawnie :)");
-				else JOptionPane.showMessageDialog(null, "Sudoku rozwiązane niepoprawnie :(");
 			}
 		});
 		return sprB;
 	}
-
+	
 	private MyJButton rozwiazanieButton() {
-		MyJButton rozB = new MyJButton("Rozwiązanie");
+		rozB = new MyJButton("Rozwiązanie");
 		rozB.setBounds(40, 410, 300, 40);
 		
 		rozB.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				uzupelnijGUI(sudokuRoz);
+				((MyJButton) e.getSource()).setEnabled(false);
+				czySudokuRozwiazanePoprawnie(sudokuRoz, true);
 			}
 		});
 		return rozB;
@@ -140,19 +183,44 @@ public class BasicPanel extends JPanel {
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				rozB.setEnabled(true);
 				createNewSudoku();
+				
+				timerTask.reset();
+				timerTask.sleep(1000);
+				timerTask.start();
+				
+				
+				ssb.setText("Stop");
 			}
 		});
 		nextB.setBounds(40, 360, 300, 40);
 		return nextB;
 	}
 	
+	private boolean czySudokuRozwiazanePoprawnie(int[][] sudoku, boolean czyWyspisac) {
+		int i = 0;
+		boolean czyPoprawnie = true;
+		
+		for(int n = 0; n < 9; n++) {
+			if(!sudokuBoxes[n].czyPoprawnie((int)(n/3), i, sudoku, czyWyspisac)){
+				czyPoprawnie = false;
+			}
+			i++;
+			if(i == 3) i = 0;
+		}
+		
+		if(czyPoprawnie){
+			return true;
+		} else {
+			return false;
+		}
+	}
+	
 	private void createNewSudoku() {
-		SudokuAlgorithm sudoku = new SudokuAlgorithm();
+		sudoku = new SudokuAlgorithm(level);
 		sudoku.createSudoku();
-		sudokuPlansza = sudoku.getSudoku();
-		sudokuRoz = sudoku.getAnswer();
-		uzupelnijGUI(sudokuPlansza);
+		isSudokuNeedCheck = true;
 	}
 	
 	private void uzupelnijGUI(int[][] sudoku) {
@@ -222,19 +290,22 @@ class SudokuBox extends JPanel {
 		this.setBackground(Color.BLACK);
 	}
 
-	public boolean czyPoprawnie(int y, int x, int[][] sudoku) {
+	public boolean czyPoprawnie(int y, int x, int[][] sudoku, boolean czyWypisac) {
+		boolean czyP = true;
 		x *= 3;
 		y *= 3;
-		try{
-			for(int n = 0; n < 3; n++) {
-				for(int n2 = 0; n2 < 3; n2++) {
-					if(Integer.parseInt(liters[n][n2].getText()) != sudoku[y + n][n2 + x]) return false;
+		for(int n = 0; n < 3; n++) {
+			for(int n2 = 0; n2 < 3; n2++) {
+				if(liters[n][n2].getText().equalsIgnoreCase("") || Integer.parseInt(liters[n][n2].getText()) != sudoku[y + n][n2 + x]){
+					czyP = false;
+					liters[n][n2].wrong();
+				} else liters[n][n2].correct();
+				if(czyWypisac){
+					liters[n][n2].setText(String.valueOf(sudoku[y + n][n2 + x]));
 				}
 			}
-		} catch (NumberFormatException e) {
-			return false;
 		}
-		return true;
+		return czyP;
 	}
 
 	public void uzupelnij(int y, int x, int[][] sudokuPlansza) {

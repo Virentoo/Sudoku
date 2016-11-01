@@ -8,34 +8,141 @@ public class SudokuAlgorithm {
     int[][] curr = new int[9][9];
     SecureRandom rand = new SecureRandom();
     boolean czyUdaloSie = false;
+    
+    int level;
+    
+    Thread run;
 
-    public SudokuAlgorithm() {
-    	
+    public SudokuAlgorithm(int level) {
+    	this.level = level;
     }
     
     public void createSudoku() {
-	        createRandomSudoku();
-	
-	        do{
-		        for(int n = 0; n < 9; n++) {
-		        	for(int n2 = 0; n2 < 9; n2++) {
-		        		curr[n][n2] = tab[n][n2];
-		        	}
-		        }
+    	createStandardSudoku();
+    	
+		run = new Thread(new Runnable() {
+			@Override
+			public void run() {
+				
+				for(int n2 = 0; n2 < 3; n2++) {
+					
+					//Zmien male kolumny
+					for(int n = 0; n < 3; n++) exchangeSmall(-1, n);
+					//Zmien duze kolumny
+					for(int n = 0; n < 3; n++) exchangeBig(0);
+					//Zmien male linie
+					for(int n = 0; n < 3; n++) exchangeSmall(n, -1);
+					//Zmien duze linie
+					for(int n = 0; n < 3; n++) exchangeBig(1);
+					
+					for(int y = 0; y < 9; y++) {
+						for(int x = 0; x < 9; x++) {
+							curr[y][x] = tab[y][x];
+					    }
+					}
+					exchangeGrid(rand.nextInt(4));
+					
+				}
+				
+				for(int n = 0; n < 9; n++) {
+					for(int n2 = 0; n2 < 9; n2++) {
+						curr[n][n2] = tab[n][n2];
+				    }
+				}
+				
+				finishSudoku();
+				
+				czyUdaloSie = true;
+			}
+		});
+		
+		run.start();
 		        
-		        if (!solve(0, 0)) {
-		            czyUdaloSie = false;
-		        } else czyUdaloSie = true;
-	
-		        for(int n = 0; n < 9; n++) {
-		        	for(int n2 = 0; n2 < 9; n2++) {
-		        		tab[n][n2] = curr[n][n2];
-		        	}
-		        }
-		        
-		        finishSudoku();
-	        }while(!czyUdaloSie);
     }
+    
+
+	protected void exchangeGrid(int i) {
+		int nx = 0 , ny = 0;
+		if(i == 0) return;
+		else if(i == 1){ nx = 8; ny = 0; }
+		else if(i == 2){ nx = 8; ny = 8; }
+		else { nx = 0; ny = 8;}
+			for(int y = 0; y < 9; y++) {
+				for(int x = 0; x < 9; x++) {
+					tab[y][x] = curr[Math.abs(nx - x)][Math.abs(ny - y)];
+				}
+			}
+		
+	}
+
+	protected void exchangeBig(int i) {
+		int p1, p2;
+		do {
+			p1 = rand.nextInt(3);
+			p2 = rand.nextInt(3);
+		}while (p1 == p2);
+		if(i == 0) changBigColumn(p1,p2);
+		else changeBigLine(p1,p2);
+	}
+
+	private void changeBigLine(int y1, int y2) {
+		int p;
+		y1 *= 3;
+		y2 *= 3;
+		for(int n = 0; n < 3; n++) {
+			for(int x = 0; x < 9; x++) {
+				p = tab[y1 + n][x];
+				tab[y1 + n][x] = tab[y2 + n][x];
+				tab[y2 + n][x] = p;
+			}
+		}
+	}
+
+	private void changBigColumn(int x1, int x2) {
+		int lTemp;
+		x1 *= 3;
+		x2 *= 3;
+		for(int n = 0; n < 3; n++) {
+			for(int y = 0; y < 9; y++) {
+				lTemp = tab[y][x1 + n];
+				tab[y][x1 + n] = tab[y][x2 + n];
+				tab[y][x2 + n] = lTemp;
+			}
+		}
+	}
+	
+	protected void exchangeSmall(int y, int x) {
+		int x1;
+		int x2;
+		do{
+			x1 = rand.nextInt(3);
+			x2 = rand.nextInt(3);
+		}while(x1 == x2);
+		if(y == -1) changeSmallColumn(x, x1, x2);
+		else changeSmallLine(y, x1, x2);
+	}
+
+	private void changeSmallLine(int y, int y1, int y2) {
+		int p;
+		y1 += 3 * y;
+		y2 += 3 * y;
+		for(int n = 0; n < 9; n++) {
+			p = tab[y2][n];
+			tab[y2][n] = tab[y1][n];
+			tab[y1][n] = p;
+		}
+	}
+
+	private void changeSmallColumn(int x, int x1, int x2) {
+		int p;
+		x1 += 3 * x;
+		x2 += 3 * x;
+		for(int n = 0; n < 9; n++) {
+			p = tab[n][x1];
+			tab[n][x1] = tab[n][x2];
+			tab[n][x2] = p;
+		}
+	}
     
     public int[][] getSudoku(){
     	return tab;
@@ -53,7 +160,7 @@ public class SudokuAlgorithm {
         int[] uzyteX;
         int i, x;
         for(int y = 0; y < 9; y++){
-            i = rand.nextInt(5) + 4;
+            i = rand.nextInt(4) + 3 + level;
             uzyteX = fell(-1, i);
 
             for(int n = 0; n < i; n++) {
@@ -74,70 +181,25 @@ public class SudokuAlgorithm {
 		return a;
 	}
 
-	private void createRandomSudoku() {
-        int i;
-        int x;
-        int l = rand.nextInt(9) + 1;
-        int[] tabL;
-
-
-        //Wypelnij randomowo tablice
-        for(int n = 0; n < 9; n++) {
-            i = 9;
-            x = rand.nextInt(9);
-            tabL = new int[9];
-
-            for(int i2 = 0; i2 < i; i2++) {
-                while(czyLiczbaPowtorzona(tabL, l)){
-                    l = rand.nextInt(9) + 1;
-                }
-
-                tab[n][x] = l;
-                tabL[i2] = l;
-            }
-        }
-
-        //Usuwanie liczb powtorzonych!
-        for(x = 0; x < 9; x++) {
-            tabL = new int[9];
-
-            for(int y = 0; y < 9; y++) {
-                if(tab[y][x] != 0) {
-                    if(czyLiczbaPowtorzona(tabL, tab[y][x])) {
-                        tab[y][x] = 0;
-                    } else {
-                        tabL[y] = tab[y][x];
-                    }
-                }
-            }
-        }
-
-        //Poprawianie kwadratów
-        for(int n = 0; n < 3; n++) {
-            for(int n2 = 0; n2 < 3; n2++){
-                poprawKwadrat(n, n2);
-            }
-        }
+	private void createStandardSudoku() {
+		fillSmallCube(0,1);
+		fillSmallCube(1,4);
+		fillSmallCube(2,7);
+		fillSmallCube(3,2);
+		fillSmallCube(4,5);
+		fillSmallCube(5,8);
+		fillSmallCube(6,3);
+		fillSmallCube(7,6);
+		fillSmallCube(8,9);
     }
 
-    private void poprawKwadrat(int y, int x) {
-        int[] tabL = new int[9];
-        int i = 0;
-        int px;
-        int py;
-        for(py = y*3; py < y * 3 + 3; py++) {
-            for(px = x * 3; px < x * 3 + 3; px++) {
-                if(tab[py][px] != 0) {
-                    if(czyLiczbaPowtorzona(tabL, tab[py][px])) {
-                        tab[py][px] = 0;
-                    } else {
-                        tabL[i] = tab[py][px];
-                        i++;
-                    }
-                }
-            }
-        }
-    }
+    private void fillSmallCube(int y, int liczba) {
+		for(int x = 0; x < 9; x++) {
+			tab[y][x] = liczba;
+			if(liczba == 9) liczba = 0;
+			liczba++;
+		}
+	}
 
     private boolean czyLiczbaPowtorzona(int[] tabL, int l) {
         for (int aTabL : tabL) {
@@ -155,28 +217,12 @@ public class SudokuAlgorithm {
         }
     }
 
-
-    private boolean can_insert(int x, int y, int value) {
-        for(int i = 0; i < 9; i++) {
-            if (value == curr[x][i] || value == curr[i][y] ||
-                    value == curr[x/3*3+i%3][y/3*3+i/3]) return false;
-        } return true;
-    }
-
-    private boolean next(int x, int y) {
-        if (x == 8 && y == 8) return true;
-        else if (x == 8) return solve(0, y + 1);
-        else return solve(x + 1, y);
-    }
-
-    private boolean solve(int x, int y) {
-        if (tab[x][y] == 0) {
-            for(int i = 1; i <= 9; i++) {
-                if (can_insert(x, y, i)) {
-                    curr[x][y] = i;
-                    if (next(x, y)) return true;
-                }
-            } curr[x][y] = 0; return false;
-        } return next(x, y);
-    }
+	public void wyswietlRoz() {
+        for(int n = 0; n < 9; n++) {
+            for(int n2 = 0; n2 < 9; n2++) {
+                System.out.print(curr[n][n2] + " : ");
+            }
+            System.out.println();
+        }
+	}
 }
